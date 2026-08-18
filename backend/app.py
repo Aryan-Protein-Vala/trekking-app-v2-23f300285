@@ -240,7 +240,7 @@ def create_trek():
     new_trek = Trek(
         name=data['name'], location=data['location'], difficulty=data['difficulty'],
         duration_days=data['duration_days'], available_slots=data['available_slots'],
-        assigned_staff_id=data.get('assigned_staff_id'), description=data['description']
+        assigned_staff_id=data.get('assigned_staff_id'), description=data.get('description', 'No description provided')
     )
     db.session.add(new_trek)
     db.session.commit()
