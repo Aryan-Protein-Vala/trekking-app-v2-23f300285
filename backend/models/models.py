@@ -56,7 +56,7 @@ class Trek(db.Model):
     location = db.Column(db.String(100), nullable=False)
     difficulty = db.Column(db.String(50), nullable=False)
     duration_days = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.Text, nullable=True)
+    description = db.Column(db.Text(1000), nullable=True)
     
     # How many spots are left. When a user books, this number decreases.
     # ---> CROSS-REFERENCE: Updated in `book_trek()` in `app.py` when a User clicks "Book Now" in `index.html`.
