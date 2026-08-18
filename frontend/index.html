@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trekking App V2</title>
+    <!-- Bootstrap provides pre-styled CSS classes (e.g., btn, container, card) for quick UI development without custom CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Load Vue 3 via CDN. This allows us to use Vue globally without needing a complex build step like Webpack or Vite -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-light">
+<!-- The '#app' div is the mount point for Vue. Vue will take control of everything inside this element -->
+<div id="app" class="container mt-5">
+
+    <!-- v-if is a Vue directive for Conditional Rendering. It completely removes/adds this block from the DOM based on the condition.
+         Here, if 'token' is false/empty (user is not logged in), this login form will be shown. -->
+    <div v-if="!token">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title text-center mb-4">Login to TMA</h3>
+                        <!-- If there's an error message (errorMsg is not empty string), show this red alert box -->
+                        <div v-if="errorMsg" class="alert alert-danger">{{ errorMsg }}</div>
+                        <!-- v-model creates TWO-WAY DATA BINDING between the input field and the 'loginData.username' variable in JS.
+                             Typing here updates the JS variable instantly, and updating the JS variable updates this input instantly. -->
+                        <input type="text" v-model="loginData.username" class="form-control mb-3" placeholder="Username">
+                        <input type="password" v-model="loginData.password" class="form-control mb-3" placeholder="Password">
+                        <!-- @click is Vue's shorthand for v-on:click. It attaches a click event listener that calls the 'login' function -->
+                        <button @click="login" class="btn btn-primary w-100 mb-2">Login</button>
+                        <button @click="register" class="btn btn-outline-secondary w-100">Register as User</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- If 'token' is truthy (user is logged in), show the main dashboard instead -->
+    <div v-if="token">
+        <!-- Navigation bar with user info and logout button -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 rounded px-3">
+            <a class="navbar-brand" href="#">TMA Dashboard</a>
+            <div class="ms-auto text-light d-flex align-items-center">
+                <!-- Double curly braces {{ }} evaluate JS expressions and output them as text (Text Interpolation) -->
+                <span class="me-3">Role: {{ role }}</span>
+                <button @click="logout" class="btn btn-sm btn-danger">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Role-based rendering: This block only exists in the DOM if the user's role is exactly 'Admin' -->
+        <div v-if="role === 'Admin'">
+            <h4>Admin Dashboard</h4>
+            <div class="alert alert-info w-25">
+                <strong>Total Treks in Database:</strong> {{ totalTreksCount }}
+            </div>
+            <div class="card mb-4 p-3 shadow-sm">
+                <h5>Create Trek</h5>
+                <!-- v-model binds these inputs to the properties of the 'newTrek' reactive object in app.js -->
+                <input type="text" v-model="newTrek.name" class="form-control mb-2" placeholder="Trek Name">
+                <input type="text" v-model="newTrek.location" class="form-control mb-2" placeholder="Location">
+                <select v-model="newTrek.difficulty" class="form-select mb-2">
+                    <option disabled value="">Select Difficulty</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+                <!-- type="number" ensures the browser prompts for a numeric keypad on mobile and validates numbers -->
+                <input type="number" v-model="newTrek.duration_days" class="form-control mb-2" placeholder="Duration (Days)">
+                <input type="number" v-model="newTrek.available_slots" class="form-control mb-2" placeholder="Slots">
+                <input type="text" v-model="newTrek.description" class="form-control mb-2" placeholder="Description">
+                <button @click="createTrek" class="btn btn-success">Create Trek</button>
+            </div>
+        </div>
+
+        <!-- Role-based rendering for 'Staff' users -->
+        <div v-if="role === 'Staff'">
+            <h4>Staff Dashboard</h4>
+            <!-- This edit form is only shown when a staff member has clicked 'Manage' on a specific trek (selectedTrek is not null) -->
+            <div v-if="selectedTrek" class="card mb-4 p-3 shadow-sm">
+                <h5>Manage {{ selectedTrek.name }}</h5>
+                <!-- v-model works on <select> dropdowns too, binding the selected <option> value to the variable -->
+                <select v-model="selectedTrek.status" class="form-select mb-2">
+                    <option value="Open">Open</option>
+                    <option value="Closed">Closed</option>
+                </select>
+                <input type="number" v-model="selectedTrek.available_slots" class="form-control mb-2" placeholder="Slots">
+                <button @click="updateTrek" class="btn btn-primary me-2">Save</button>
+                <!-- Clicking cancel sets selectedTrek to null, which makes the v-if evaluate to false, hiding this form -->
+                <button @click="selectedTrek = null" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Role-based rendering for 'User' users -->
+        <div v-if="role === 'User'">
+            <h4>User Dashboard</h4>
+            <button @click="exportBookings" class="btn btn-info mb-3 text-white">Export My Bookings (CSV)</button>
+            <!-- The download alert only shows up when 'exportLink' has a URL generated by the backend -->
+            <div v-if="exportLink" class="alert alert-success">
+                <!-- The colon in :href is shorthand for v-bind:href. It allows us to pass a JS variable (exportLink) into an HTML attribute instead of a static string -->
+                Export ready! <a :href="exportLink" target="_blank">Download Here</a>
+            </div>
+        </div>
+
+        <h5>Available Treks</h5>
+        <div class="row">
+            <!-- v-for is a Vue loop directive. It repeats this <div> for every item inside the 'treks' array.
+                 :key is crucial for Vue's virtual DOM to uniquely identify and track each element for efficient updates -->
+            <div v-for="trek in treks" :key="trek.id" class="col-md-4 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <!-- Outputting the data for this specific trek in the loop -->
+                        <h5 class="card-title">{{ trek.name }}</h5>
+                        <p class="card-text mb-1"><small>Location: {{ trek.location }}</small></p>
+                        <p class="card-text mb-1"><small>Status: {{ trek.status }}</small></p>
+                        <p class="card-text mb-1"><small>Slots: {{ trek.available_slots }}</small></p>
+                        <p class="card-text mb-1"><small>Duration: {{ trek.duration_days }}</small></p>
+                        <p class="card-text mb-1" v-if="trek.difficulty === 'Hard'"><small style="color: red; font-weight: bold;">Difficulty: {{ trek.difficulty }}</small></p>
+                        <p class="card-text mb-1" v-if="trek.difficulty === 'Easy'"><small style="color: green; font-weight: bold;">Difficulty: {{ trek.difficulty }}</small></p>
+                        <p class="card-text mb-1" v-if="trek.difficulty === 'Medium'"><small style="color: blue; font-weight: bold;">Difficulty: {{ trek.difficulty }}</small></p>
+
+                        
+                        <!-- Multiple conditions in v-if: User must be a 'User', trek must be 'Open', AND have available slots to see the Book button -->
+                        <button v-if="role === 'User' && trek.status === 'Open' && trek.available_slots > 0 && !trek.is_booked_by_user" @click="bookTrek(trek.id)" class="btn btn-sm btn-primary mt-2 ms-3">Book Now</button>
+                        <button v-if="role === 'User' && trek.is_booked_by_user" class="btn btn-sm btn-success mt-2 ms-3" disabled>Booked</button>
+                        <button v-if="role === 'User' && trek.is_booked_by_user" class="btn btn-sm btn-danger mt-2 ms-3" @click="cancelBooking(trek.id)" >Cancel</button>
+                        <!-- (We removed the 'Booked' button check here because 'booking' is undefined and crashes Vue!) -->
+                        <button v-if=" trek.available_slots === 0" class="btn btn-sm btn-danger mt-2 ms-3" disabled>SOLD OUT</button>
+
+                        
+                        <!-- If the logged-in user is 'Staff', they see a Manage button instead. Clicking it sets the selectedTrek variable to this specific trek object, triggering the edit form above to show -->
+                        <button v-if="role === 'Staff'" @click="selectedTrek = trek" class="btn btn-sm btn-warning mt-2">Manage</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Finally, we load our external JavaScript file which contains the Vue setup logic -->
+<script src="/app.js"></script>
+</body>
+</html>
