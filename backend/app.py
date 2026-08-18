@@ -207,7 +207,7 @@ def get_treks():
                 'id': t.id, 'name': t.name, 'location': t.location, 
                 'difficulty': t.difficulty, 'duration_days': t.duration_days,
                 'available_slots': t.available_slots, 'status': t.status,
-                'assigned_staff_id': t.assigned_staff_id
+                'assigned_staff_id': t.assigned_staff_id, 'description': t.description
             })
         # Store the generic result in Redis for future requests (expires in 60 seconds)
         redis_client.set('all_treks', json.dumps(result), ex=60)

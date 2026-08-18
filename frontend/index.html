@@ -115,6 +115,7 @@
                         <p class="card-text mb-1"><small>Status: {{ trek.status }}</small></p>
                         <p class="card-text mb-1"><small>Slots: {{ trek.available_slots }}</small></p>
                         <p class="card-text mb-1"><small>Duration: {{ trek.duration_days }}</small></p>
+                        <p class="card-text mb-1"><small>Description: {{ trek.description }}</small></p>
                         <p class="card-text mb-1" v-if="trek.difficulty === 'Hard'"><small style="color: red; font-weight: bold;">Difficulty: {{ trek.difficulty }}</small></p>
                         <p class="card-text mb-1" v-if="trek.difficulty === 'Easy'"><small style="color: green; font-weight: bold;">Difficulty: {{ trek.difficulty }}</small></p>
                         <p class="card-text mb-1" v-if="trek.difficulty === 'Medium'"><small style="color: blue; font-weight: bold;">Difficulty: {{ trek.difficulty }}</small></p>
